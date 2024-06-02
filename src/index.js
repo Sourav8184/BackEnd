@@ -18,3 +18,11 @@ connect_DB()
   .catch((error) => {
     console.log(`MongoDB connection faild ${error}`);
   });
+
+// Import Routes:
+import userRoute from "./routes/userRoute.js";
+
+//Router Declaration:
+app.use("/api/v1/users", userRoute);
+
+export default app;
