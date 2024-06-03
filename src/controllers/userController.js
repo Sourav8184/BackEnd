@@ -6,7 +6,8 @@ import ApiResponse from "../utils/ApiResponse.js";
 
 const generateAccessAndRefreshToken = async (userId) => {
   try {
-    const user = await User.findById({ userId });
+    // console.log("userId -> ", userId);
+    const user = await User.findById(userId);
     const accessToken = user.generateAccessToken();
     const refreshToken = user.generateRefreshToken();
     user.refreshToken = refreshToken;
@@ -130,12 +131,12 @@ const loginUser = asyncHandler(async (req, res) => {
   //    throw new ApiError(400, "Username or Email is required");
   //  }
 
-  // const user = await User.findOne({ email });
+  const user = await User.findOne({ email });
   // const user = await User.findOne({ username });
 
-  const user = await User.findOne({
-    $or: [{ username }, { password }],
-  });
+  // const user = await User.findOne({
+  //   $or: [{ username }, { password }],
+  // });
 
   if (!user) {
     throw new ApiError(404, "User Not Found ");
@@ -150,7 +151,8 @@ const loginUser = asyncHandler(async (req, res) => {
   const { accessToken, refreshToken } = await generateAccessAndRefreshToken(
     user._id
   );
-
+  console.log("Access ->", accessToken);
+  console.log("refresh ->", refreshToken);
   const loggedInUser = await User.findById(user._id).select(
     "-password -refreshToken"
   );
@@ -162,8 +164,8 @@ const loginUser = asyncHandler(async (req, res) => {
 
   return res
     .status(200)
-    .cookie("accessToken", optionsForCookieNotChangeByFrontend)
-    .cookie("refreshToken", optionsForCookieNotChangeByFrontend)
+    .cookie("accessToken", accessToken, optionsForCookieNotChangeByFrontend)
+    .cookie("refreshToken", refreshToken, optionsForCookieNotChangeByFrontend)
     .json(
       new ApiResponse(
         200,
@@ -178,6 +180,7 @@ const loginUser = asyncHandler(async (req, res) => {
 });
 
 const logoutUser = asyncHandler(async (req, res) => {
+  console.log("1");
   await User.findByIdAndUpdate(
     req.user._id,
     {
@@ -189,12 +192,12 @@ const logoutUser = asyncHandler(async (req, res) => {
       new: true,
     }
   );
-
+  console.log("2");
   const optionsForCookieNotChangeByFrontend = {
     httpOnly: true,
     secure: true,
   };
-
+  console.log("3");
   return res
     .status(200)
     .clearCookie("accessToken", optionsForCookieNotChangeByFrontend)
