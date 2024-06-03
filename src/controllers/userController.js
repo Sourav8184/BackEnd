@@ -3,6 +3,7 @@ import ApiError from "../utils/ApiError.js";
 import { User } from "../models/userModel.js";
 import uploadOnCloudinary from "../utils/cloudinary.js";
 import ApiResponse from "../utils/ApiResponse.js";
+import JWT from "jsonwebtoken";
 
 const generateAccessAndRefreshToken = async (userId) => {
   try {
@@ -204,4 +205,61 @@ const logoutUser = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, {}, "User Logout Successfully"));
 });
 
-export { registerUser, loginUser, logoutUser };
+const refreshAccessToken = asyncHandler(async (req, res) => {
+  const incommingRefreshToken =
+    req.cookies?.refreshToken || req.body.refreshToken;
+
+  if (!incommingRefreshToken) {
+    throw new ApiError(401, "Unauthorized request");
+  }
+
+  try {
+    const decodedToken = JWT.verify(
+      incommingRefreshToken,
+      REFRESH_TOKEN_SECRET
+    );
+    const user = await User.findById(decodedToken?._id);
+
+    if (!user) {
+      throw new ApiError(401, "Invalid refresh Token");
+    }
+
+    if (incommingRefreshToken !== user?.refreshToken) {
+      throw new ApiError(401, "RefreshToken Expired! ");
+    }
+
+    const optionsForCookieNotChangeByFrontend = {
+      httpOnly: true,
+      secure: true,
+    };
+
+    const { new_AccessToken, new_RefreshToken } =
+      await generateAccessAndRefreshToken(user?._id);
+
+    return res
+      .status(200)
+      .cookie(
+        "accessToken",
+        new_AccessToken,
+        optionsForCookieNotChangeByFrontend
+      )
+      .cookie(
+        "refreshToken",
+        new_RefreshToken,
+        optionsForCookieNotChangeByFrontend
+      )
+      .json(
+        new ApiResponse(
+          200,
+          {
+            accessToken: new_AccessToken,
+            refreshToken: new_RefreshToken,
+          },
+          "RefreshAccess Token successfully"
+        )
+      );
+  } catch (error) {
+    throw new ApiError(401, error?.message || "Invalid refresh token");
+  }
+});
+export { registerUser, loginUser, logoutUser, refreshAccessToken };
