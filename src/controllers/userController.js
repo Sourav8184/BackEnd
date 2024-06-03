@@ -131,12 +131,12 @@ const loginUser = asyncHandler(async (req, res) => {
   //    throw new ApiError(400, "Username or Email is required");
   //  }
 
-  const user = await User.findOne({ email });
+  // const user = await User.findOne({ email });
   // const user = await User.findOne({ username });
 
-  // const user = await User.findOne({
-  //   $or: [{ username }, { password }],
-  // });
+  const user = await User.findOne({
+    $or: [{ username }, { email }],
+  });
 
   if (!user) {
     throw new ApiError(404, "User Not Found ");
@@ -151,8 +151,8 @@ const loginUser = asyncHandler(async (req, res) => {
   const { accessToken, refreshToken } = await generateAccessAndRefreshToken(
     user._id
   );
-  console.log("Access ->", accessToken);
-  console.log("refresh ->", refreshToken);
+  // console.log("Access ->", accessToken);
+  // console.log("refresh ->", refreshToken);
   const loggedInUser = await User.findById(user._id).select(
     "-password -refreshToken"
   );
@@ -180,7 +180,6 @@ const loginUser = asyncHandler(async (req, res) => {
 });
 
 const logoutUser = asyncHandler(async (req, res) => {
-  console.log("1");
   await User.findByIdAndUpdate(
     req.user._id,
     {
@@ -192,12 +191,12 @@ const logoutUser = asyncHandler(async (req, res) => {
       new: true,
     }
   );
-  console.log("2");
+
   const optionsForCookieNotChangeByFrontend = {
     httpOnly: true,
     secure: true,
   };
-  console.log("3");
+
   return res
     .status(200)
     .clearCookie("accessToken", optionsForCookieNotChangeByFrontend)
